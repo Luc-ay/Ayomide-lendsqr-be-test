@@ -1,0 +1,35 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+*.js
+*.js.map
+
+# Environment variables
+.env
+.env.*   # optional if using multiple env files like .env.dev, .env.prod
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Knex migration and seed compiled files (if compiled into dist/)
+knexfile.js
+knexfile.ts.js
+knexfile.ts.js.map
+
+# TypeScript cache and outputs
+*.tsbuildinfo
+
+# VS Code settings (optional)
+.vscode/
+
+# Local database files (if any, like SQLite d
