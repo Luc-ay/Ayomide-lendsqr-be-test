@@ -5,6 +5,7 @@ import {
   checkPhoneNumber,
   createUser,
   findUserByEmail,
+  findUserById,
   getAllUsers,
   loginUser,
 } from '../services/userService'
@@ -94,9 +95,6 @@ export const registerUser = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal server error' })
   }
 }
-
-// get users
-
 // Login user
 
 export const userLogin = async (req: Request, res: Response) => {
@@ -166,4 +164,22 @@ export const getUsers = async (req: Request, res: Response) => {
   }
 
   return res.status(200).json(users)
+}
+export const getUsersbyID = async (req: Request, res: Response) => {
+  const userId = Number(req.params.id)
+
+  const users = await findUserById(userId)
+  if (!users) {
+    return res.status(404).json({ message: 'No users found' })
+  }
+
+  const userAccount = await findAccount('', userId)
+  if (!userAccount) {
+    return res.status(404).json({ message: 'Account not found' })
+  }
+
+  return res.status(200).json({
+    user: users,
+    account_number: userAccount.account_number,
+  })
 }
