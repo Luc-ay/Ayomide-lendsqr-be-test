@@ -1,74 +1,108 @@
 // src/controllers/user.controller.ts
 import { Request, Response } from 'express'
-import bcrypt from 'bcryptjs'
 import {
+  checkPhoneNumber,
   createUser,
   findUserByEmail,
   loginUser,
-} from 'src/services/userService'
+} from '../services/userService'
+import axios from 'axios'
+import bcrypt from 'bcryptjs'
+import { checkBlacklist } from 'src/utils/karmaLookup'
+import { User } from 'src/dtos/userDto'
 
-// Register a new user
-export const register = async (req: Request, res: Response) => {
-  const { name, email, password } = req.body
-  /* 
-   future improvement:
-   - First recieves the user phone number and verifies it via OTP
-   - Then allows the user to register with name, email, and password
-*/
+export const registerUser = async (req: Request, res: Response) => {
   try {
-    if (!name || !email || !password) {
-      throw { status: 400, publicMessage: 'All fields are required' }
+    const { first_name, last_name, email, phone_number, password }: User =
+      req.body
+
+    if (!first_name || !last_name || !email || !phone_number || !password) {
+      return res.status(400).json({ message: 'All fields are required' })
     }
 
-    const existingUser = await findUserByEmail(email)
+    const existingUser = await findUserByEmail(email.toLowerCase())
     if (existingUser) {
-      return res.status(409).json({ message: 'User already exist' })
+      return res.status(409).json({ message: 'Email is already registered' })
     }
 
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(password, salt)
+    const phoneNumberExist = await checkPhoneNumber(phone_number)
+    if (phoneNumberExist) {
+      return res
+        .status(409)
+        .json({ message: 'phone number is already registered' })
+    }
 
-    const newUser = await createUser({ name, email, password: hashedPassword })
+    const blacklistCheck = await checkBlacklist(phone_number)
+
+    if (
+      (blacklistCheck as any)?.['mock-response'] ||
+      blacklistCheck.blacklisted // if you're extracting this in your function
+    ) {
+      return res.status(403).json({
+        message:
+          'Registration denied: You are listed on the financial blacklist.',
+        reason: blacklistCheck.reason || 'Flagged by Adjutor API (mock mode)',
+      })
+    }
+
+    const newUser = await createUser({
+      username: email.split('@')[0],
+      email: email.toLowerCase(),
+      phone_number,
+      password,
+      first_name,
+      last_name,
+      email_verified: false,
+      verified: false,
+      blacklisted: false,
+    })
+
+    const { password: _, ...safeUser } = newUser
     return res.status(201).json({
       message: 'User registered successfully',
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-      },
+      user: safeUser,
     })
-  } catch (error) {
-    console.error('Registration error:', error) // Logs full details for debugging
-
-    return res
-      .status(500)
-      .json({ message: 'Something went wrong. Please try again later.' })
+  } catch (error: any) {
+    console.error('[Register Error]', error.message)
+    return res.status(500).json({ message: 'Internal server error' })
   }
 }
 
 // Login user
-export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body
+export const userLogin = async (req: Request, res: Response) => {
   try {
-    const user = await loginUser(email, password)
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' })
+    const { email, password }: User = req.body
 
+    if (!email || !password) {
+      return res.status(422).json({ message: 'All fields are required' })
+    }
+
+    const userExist = await findUserByEmail(email)
+    if (!userExist) {
+      return res.status(422).json({ message: 'User not found' })
+    }
+
+    const user = await loginUser(email.toLowerCase(), password)
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' })
+    }
+
+    // Check if user is blacklisted
+    if (user.blacklisted) {
+      return res.status(403).json({
+        message: 'Login denied: You are listed on the financial blacklist.',
+        reason: 'Flagged by Adjutor API',
+      })
+    }
+
+    // Remove password from response
+    const { password: _, ...safeUser } = user
     return res.status(200).json({
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-      },
+      message: 'Login successfully',
     })
-  } catch (error) {
-    console.error('Registration error:', error) // Logs full details for debugging
-
-    return res
-      .status(500)
-      .json({ message: 'Something went wrong. Please try again later.' })
+  } catch (error: any) {
+    console.error('[Login Error]', error.message)
+    return res.status(500).json({ message: 'Internal server error' })
   }
 }
 

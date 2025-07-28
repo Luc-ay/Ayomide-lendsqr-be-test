@@ -33,3 +33,5 @@ knexfile.ts.js.map
 .vscode/
 
 # Local database files (if any, like SQLite d
+
+.early.coverage
