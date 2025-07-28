@@ -11,6 +11,8 @@ import {
 import { checkBlacklist } from 'src/utils/karmaLookup'
 import { User } from 'src/dtos/userDto'
 import { get } from 'http'
+import { createAccount, findAccount } from 'src/services/accountServices'
+import { CreateAccountInput } from 'src/dtos/validationDto'
 
 const JWT_SECRET: any = process.env.JWT_SECRET
 
@@ -59,6 +61,28 @@ export const registerUser = async (req: Request, res: Response) => {
       verified: false,
       blacklisted: false,
     })
+
+    // Generate a unique 10-digit account number starting with '021'
+    let accountNumber = ''
+    let isUnique = false
+
+    while (!isUnique) {
+      const randomPart = Math.floor(1000000 + Math.random() * 9000000)
+      accountNumber = `021${randomPart}`
+
+      const existing = await findAccount(accountNumber)
+      if (!existing) isUnique = true
+    }
+
+    // Create the account
+    const newAccount: CreateAccountInput = {
+      user_id: Number(newUser.id),
+      account_number: accountNumber,
+      account_type: 'wallet',
+      balance: 0,
+    }
+
+    const createdAccount = await createAccount(newAccount)
 
     const { password: _, ...safeUser } = newUser
     return res.status(201).json({

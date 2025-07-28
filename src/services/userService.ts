@@ -11,7 +11,7 @@ export const createUser = async (
   const [userId] = await db<User>('users').insert({
     ...user,
     password: hashedPassword,
-    email: user.email.toLowerCase(), // normalize
+    email: user.email.toLowerCase(),
   })
 
   const newUser = await db<User>('users').where({ id: userId }).first()
@@ -42,6 +42,7 @@ export const getAllUsers = async (): Promise<User[]> => {
   return db<User>('users').select('*')
 }
 
+// Find User by phone number
 export const checkPhoneNumber = async (
   phone_number: string
 ): Promise<User | undefined> => {
