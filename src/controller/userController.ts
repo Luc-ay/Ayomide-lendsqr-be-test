@@ -1,15 +1,18 @@
 // src/controllers/user.controller.ts
 import { Request, Response } from 'express'
+import Jwt from 'jsonwebtoken'
 import {
   checkPhoneNumber,
   createUser,
   findUserByEmail,
+  getAllUsers,
   loginUser,
 } from '../services/userService'
-import axios from 'axios'
-import bcrypt from 'bcryptjs'
 import { checkBlacklist } from 'src/utils/karmaLookup'
 import { User } from 'src/dtos/userDto'
+import { get } from 'http'
+
+const JWT_SECRET: any = process.env.JWT_SECRET
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -68,7 +71,10 @@ export const registerUser = async (req: Request, res: Response) => {
   }
 }
 
+// get users
+
 // Login user
+
 export const userLogin = async (req: Request, res: Response) => {
   try {
     const { email, password }: User = req.body
@@ -87,18 +93,18 @@ export const userLogin = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Invalid credentials' })
     }
 
-    // Check if user is blacklisted
-    if (user.blacklisted) {
-      return res.status(403).json({
-        message: 'Login denied: You are listed on the financial blacklist.',
-        reason: 'Flagged by Adjutor API',
-      })
-    }
-
-    // Remove password from response
     const { password: _, ...safeUser } = user
+
+    // 🔐 Generate JWT Token
+    const token = Jwt.sign(
+      { id: safeUser.id, email: safeUser.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    )
+
     return res.status(200).json({
-      message: 'Login successfully',
+      message: 'Login successful',
+      token,
     })
   } catch (error: any) {
     console.error('[Login Error]', error.message)
@@ -127,3 +133,13 @@ export const userLogin = async (req: Request, res: Response) => {
 //     return res.status(500).json({ message: 'Server error', error })
 //   }
 // }
+
+export const getUsers = async (req: Request, res: Response) => {
+  const users = await getAllUsers()
+
+  if (!users || users.length === 0) {
+    return res.status(404).json({ message: 'No users found' })
+  }
+
+  return res.status(200).json(users)
+}

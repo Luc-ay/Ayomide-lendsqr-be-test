@@ -38,6 +38,10 @@ export const findUserByEmail = async (
 ): Promise<User | undefined> => {
   return db<User>('users').where({ email: email.toLowerCase() }).first()
 }
+export const getAllUsers = async (): Promise<User[]> => {
+  return db<User>('users').select('*')
+}
+
 export const checkPhoneNumber = async (
   phone_number: string
 ): Promise<User | undefined> => {
