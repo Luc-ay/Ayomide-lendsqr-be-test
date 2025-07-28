@@ -13,18 +13,15 @@ export const createAccount = async (input: CreateAccountInput) => {
   return createdAccount
 }
 export const findAccount = async (
-  account_number?: string,
-  userId?: number
+  account_number: string
 ): Promise<CreateAccountInput | undefined> => {
   const query = db<CreateAccountInput>('accounts')
 
-  if (account_number) {
-    query.where({ account_number })
-  }
+  return db<CreateAccountInput>('accounts').where({ account_number }).first()
+}
 
-  if (userId) {
-    query.andWhere({ user_id: userId })
-  }
-
-  return query.first()
+export const findAccountByUserId = async (
+  userId: number
+): Promise<CreateAccountInput | undefined> => {
+  return db<CreateAccountInput>('accounts').where({ user_id: userId }).first()
 }
