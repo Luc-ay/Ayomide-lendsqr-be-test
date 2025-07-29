@@ -1,7 +1,9 @@
 import db from '../config/db'
+import Jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { User } from '../dtos/userDto'
 import redisClient from 'src/utils/redis'
+import { JWT_SECRET } from 'src/controller/userController'
 
 // Create a new user (with hashed password)
 export const createUser = async (
@@ -70,19 +72,19 @@ export const updateUserProfile = async (
   return db('users').where({ id: userId }).first()
 }
 
-export const logoutService = async (
-  token: string
-): Promise<{ success: boolean; message: string }> => {
+export const logoutService = async (token: string) => {
   try {
-    const deleted = await redisClient.del(token)
+    const payload: any = Jwt.verify(token, JWT_SECRET)
+    const redisKey = `token:${payload.id}`
 
-    if (deleted === 1) {
-      return { success: true, message: 'Logged out successfully' }
-    } else {
-      return { success: false, message: 'Token not found or already expired' }
+    const storedToken = await redisClient.get(redisKey)
+    if (!storedToken || storedToken !== token) {
+      return { success: false, message: 'Token expired or invalidated' }
     }
-  } catch (error) {
-    console.error('Logout Service Error:', error)
-    return { success: false, message: 'Internal server error' }
+
+    await redisClient.del(redisKey)
+    return { success: true, message: 'Logged out successfully' }
+  } catch (err) {
+    return { success: false, message: 'Invalid or expired token' }
   }
 }

@@ -3,7 +3,7 @@ import {
   getUsers,
   userLogin,
   editUserProfile,
-  logout,
+  logoutController,
   registerUser,
   getUserbyID,
 } from '../controller/userController'
@@ -16,6 +16,6 @@ router.post('/login', userLogin)
 router.get('/users', getUsers)
 router.get('/user/:id', authenticateToken, getUserbyID)
 router.patch('/user/:id', authenticateToken, editUserProfile)
-router.post('/logout', authenticateToken, logout)
+router.post('/logout', authenticateToken, logoutController)
 
 export default router

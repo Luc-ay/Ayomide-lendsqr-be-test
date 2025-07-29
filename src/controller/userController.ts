@@ -21,7 +21,7 @@ import {
 } from 'src/services/accountServices'
 import { CreateAccountInput } from 'src/dtos/validationDto'
 
-const JWT_SECRET: any = process.env.JWT_SECRET
+export const JWT_SECRET: any = process.env.JWT_SECRET
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -123,16 +123,16 @@ export const userLogin = async (req: Request, res: Response) => {
 
     const { password: _, ...safeUser } = user
 
-    // Generate Token
+    // generates a JWT token
     const token = Jwt.sign(
       { id: safeUser.id, email: safeUser.email },
       JWT_SECRET,
       { expiresIn: '7d' }
     )
 
-    // Store token in Redis with expiration
+    // Store token in Redis
     await redisClient.set(`token:${safeUser.id}`, token, {
-      EX: 60 * 60 * 24 * 7, // 7 days
+      EX: 60 * 60 * 24 * 2, // 2 days
     })
 
     return res.status(200).json({
@@ -233,20 +233,15 @@ export const editUserProfile = async (req: Request, res: Response) => {
 }
 
 // logout user
-export const logout = async (req: Request, res: Response) => {
+export const logoutController = async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization
+  const token = authHeader && authHeader.split(' ')[1]
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(400).json({ message: 'No token provided' })
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' })
   }
 
-  const token = authHeader.split(' ')[1]
   const result = await logoutService(token)
-
-  const status = result.success
-    ? 200
-    : result.message.includes('expired')
-    ? 400
-    : 500
+  const status = result.success ? 200 : 400
   return res.status(status).json({ message: result.message })
 }
