@@ -1,21 +1,22 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import db from './config/db'
 import limiter from './dtos/ratelimit'
 import userRoutes from './routes/userRoute'
+import transactionRoutes from './routes/transactionRoute'
 import { errorHandler } from './middleware/errorHandler'
 
 // Load .env file
 dotenv.config()
 
-// Initializes Express app
 const app = express()
 
-// Middleware to parse JSON bodies
+// Middleware
 app.use(express.json())
 app.use(limiter)
 
-app.use('/auth', userRoutes)
+// Routes
+app.use('/', userRoutes)
+app.use('/transaction', transactionRoutes)
 
 app.use(errorHandler)
 const PORT = process.env.PORT || 8000

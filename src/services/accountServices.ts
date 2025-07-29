@@ -25,14 +25,3 @@ export const findAccountByUserId = async (
 ): Promise<CreateAccountInput | undefined> => {
   return db<CreateAccountInput>('accounts').where({ user_id: userId }).first()
 }
-
-export const updateAccountBalance = async (
-  account_number: string,
-  amount: number
-): Promise<CreateAccountInput | undefined> => {
-  const [updatedAccount] = await db('accounts')
-    .where({ account_number })
-    .increment('balance', amount)
-    .returning('*') // This works for PostgreSQL
-  return updatedAccount
-}
