@@ -16,11 +16,13 @@ import { checkBlacklist } from 'src/utils/karmaLookup'
 import { User } from 'src/dtos/userDto'
 import {
   createAccount,
+  createAccountPin,
   findAccount,
   findAccountByUserId,
 } from 'src/services/accountServices'
 import { CreateAccountInput } from 'src/dtos/transactionDto'
 import {
+  createAccountPinSchema,
   editUserProfileSchema,
   loginSchema,
   registerUserSchema,
@@ -212,6 +214,28 @@ export const editUserProfile = async (req: Request, res: Response) => {
   }
 }
 
+// Create Account Pin
+export const createaccountPin = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.id)
+
+    const { error, value } = createAccountPinSchema.validate(req.body)
+    if (error) {
+      const errors = error.details.map((detail) => detail.message)
+      return res.status(400).json({ message: 'Validation error', errors })
+    }
+
+    const { pin } = value
+    await createAccountPin(userId, pin)
+
+    return res.status(200).json({ message: 'Account PIN created successfully' })
+  } catch (err: any) {
+    console.error('[Create PIN Error]', err.message)
+    return res
+      .status(500)
+      .json({ message: err.message || 'Internal server error' })
+  }
+}
 // logout user
 export const logoutController = async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization

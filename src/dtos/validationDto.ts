@@ -53,6 +53,7 @@ export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
 })
+
 export const fundWalletSchema = Joi.object({
   account_number: Joi.string().required(),
   amount: Joi.number().positive().required(),
@@ -60,13 +61,22 @@ export const fundWalletSchema = Joi.object({
 })
 
 export const transferFundsSchema = Joi.object({
-  sender_account: Joi.string().required(),
   recipient_account: Joi.string().required(),
   amount: Joi.number().positive().required(),
+  transaction_pin: Joi.string().length(4).required(),
 })
 
 export const withdrawFundsSchema = Joi.object({
   account_number: Joi.string().required(),
   amount: Joi.number().positive().required(),
   bank_account: Joi.string().required(),
+})
+
+export const createAccountPinSchema = Joi.object({
+  pin: Joi.string().length(4).pattern(/^\d+$/).required().messages({
+    'string.base': 'PIN must be a string',
+    'string.length': 'PIN must be exactly 4 digits',
+    'string.pattern.base': 'PIN must contain only numbers',
+    'any.required': 'PIN is required',
+  }),
 })

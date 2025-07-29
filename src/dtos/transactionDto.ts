@@ -8,6 +8,7 @@ export interface TransferFundsDTO {
   sender_account: string
   recipient_account: string
   amount: number
+  transaction_pin: string
 }
 
 export interface WithdrawFundsDTO {

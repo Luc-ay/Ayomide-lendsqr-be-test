@@ -9,16 +9,24 @@ import { JWT_SECRET } from 'src/controller/userController'
 export const createUser = async (
   user: Omit<User, 'id' | 'created_on' | 'updated_on'>
 ): Promise<User> => {
-  const hashedPassword = await bcrypt.hash(user.password, 12)
+  try {
+    const hashedPassword = await bcrypt.hash(user.password, 12)
 
-  const [userId] = await db<User>('users').insert({
-    ...user,
-    password: hashedPassword,
-    email: user.email.toLowerCase(),
-  })
+    const [userId] = await db<User>('users').insert({
+      ...user,
+      password: hashedPassword,
+      email: user.email.toLowerCase(),
+    })
+    if (!userId) {
+      throw new Error('User creation failed')
+    }
 
-  const newUser = await db<User>('users').where({ id: userId }).first()
-  return newUser!
+    const newUser = await db<User>('users').where({ id: userId }).first()
+    return newUser!
+  } catch (error) {
+    console.error('[Create User Error]', error)
+    throw new Error('Error creating user')
+  }
 }
 
 // Login user and verify password

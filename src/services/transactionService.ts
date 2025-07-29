@@ -1,3 +1,4 @@
+import { channel } from 'diagnostics_channel'
 import db from '../config/db'
 import {
   FundWalletDTO,
@@ -6,6 +7,8 @@ import {
   TransactionContext,
 } from '../dtos/transactionDto'
 import { v4 as uuidv4 } from 'uuid'
+import { ref } from 'process'
+import { confirmAccountPin } from './accountServices'
 
 // Fund a user wallet
 export const fundWallet = async ({
@@ -16,27 +19,37 @@ export const fundWallet = async ({
   const trx = await db.transaction()
 
   try {
-    await trx('accounts')
-      .where({ account_number })
-      .increment('balance', amount)
-      .returning('*')
+    await trx('accounts').where({ account_number }).increment('balance', amount)
 
     const [account] = await trx('accounts').where({ account_number })
     if (!account) throw new Error('Account not found')
 
-    await trx('transactions').insert({
-      id: uuidv4(),
-      account_id: account.id,
-      type: 'credit',
+    const reference = uuidv4()
+    const description = `Wallet funded via ${source}`
+
+    const [transactionId] = await trx('transactions').insert({
+      reference,
+      sender_account_id: account.id,
+      type: 'funding',
       amount,
       status: 'success',
-      description: `Wallet funded via ${source}`,
-      created_at: new Date(),
-      updated_at: new Date(),
+      description,
+      channel: source,
     })
 
+    const [transaction] = await trx('transactions').where({ id: transactionId })
+
     await trx.commit()
-    return account
+
+    return {
+      amount,
+      account_number,
+      balance: account.balance,
+      description,
+      reference,
+      date: transaction.created_at,
+      status: transaction.status,
+    }
   } catch (err) {
     await trx.rollback()
     throw err
@@ -48,34 +61,43 @@ export const transferFunds = async ({
   sender_account,
   recipient_account,
   amount,
+  transaction_pin,
 }: TransferFundsDTO) => {
   const trx = await db.transaction()
 
   try {
-    const [sender] = await trx('accounts')
+    const sender = await trx('accounts')
       .where({ account_number: sender_account })
       .first()
 
-    const [recipient] = await trx('accounts')
+    const recipient = await trx('accounts')
       .where({ account_number: recipient_account })
       .first()
 
     if (!sender || !recipient) throw new Error('Invalid account details')
 
+    if (!sender.transaction_pin)
+      throw new Error('Transaction pin not set for this account')
+
+    const isValidPin = await confirmAccountPin(sender.user_id, transaction_pin)
+
+    if (!isValidPin) throw new Error('Invalid transaction pin')
+
     if (parseFloat(sender.balance) < amount)
       throw new Error('Insufficient balance')
 
     await trx('accounts').where({ id: sender.id }).decrement('balance', amount)
-
     await trx('accounts')
       .where({ id: recipient.id })
       .increment('balance', amount)
 
     const now = new Date()
+    const reference = uuidv4()
 
+    // Log transactions
     await trx('transactions').insert([
       {
-        id: uuidv4(),
+        reference,
         account_id: sender.id,
         type: 'debit',
         amount,
@@ -85,7 +107,7 @@ export const transferFunds = async ({
         updated_at: now,
       },
       {
-        id: uuidv4(),
+        reference,
         account_id: recipient.id,
         type: 'credit',
         amount,
@@ -97,7 +119,17 @@ export const transferFunds = async ({
     ])
 
     await trx.commit()
-    return { sender, recipient }
+
+    return {
+      message: 'Transfer successful',
+      reference,
+      transaction_time: now,
+      recipient: {
+        account_number: recipient.account_number,
+        amount_received: amount,
+        recipient_name: recipient.first_name + ' ' + recipient.last_name,
+      },
+    }
   } catch (err) {
     await trx.rollback()
     throw err
