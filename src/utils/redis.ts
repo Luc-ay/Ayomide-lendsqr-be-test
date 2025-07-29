@@ -4,6 +4,9 @@ dotenv.config()
 
 const redisClient = createClient({
   url: process.env.REDIS_URL,
+  socket: {
+    connectTimeout: 15000,
+  },
 })
 
 redisClient.on('error', (err) => {
