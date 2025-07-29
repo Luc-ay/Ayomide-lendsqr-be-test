@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express'
+import redisClient from '../utils/redis'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
-export const authenticateToken = (
+export const authenticateToken = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -15,9 +16,17 @@ export const authenticateToken = (
     return res.status(401).json({ message: 'Access token missing' })
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' })
-    ;(req as any).user = user
+  try {
+    const decoded: any = jwt.verify(token, JWT_SECRET)
+    const storedToken = await redisClient.get(`token:${decoded.id}`)
+
+    if (storedToken !== token) {
+      return res.status(401).json({ message: 'Token expired or invalidated' })
+    }
+
+    ;(req as any).user = decoded
     next()
-  })
+  } catch (err) {
+    return res.status(403).json({ message: 'Invalid token' })
+  }
 }

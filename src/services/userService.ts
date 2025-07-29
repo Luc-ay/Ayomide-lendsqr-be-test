@@ -1,6 +1,7 @@
 import db from '../config/db'
 import bcrypt from 'bcryptjs'
 import { User } from '../dtos/userDto'
+import redisClient from 'src/utils/redis'
 
 // Create a new user (with hashed password)
 export const createUser = async (
@@ -38,6 +39,7 @@ export const findUserByEmail = async (
 ): Promise<User | undefined> => {
   return db<User>('users').where({ email: email.toLowerCase() }).first()
 }
+
 export const getAllUsers = async (): Promise<User[]> => {
   return db<User>('users').select('*')
 }
@@ -54,7 +56,33 @@ export const findUserById = async (id: number): Promise<User | undefined> => {
   return db<User>('users').where({ id }).first()
 }
 
-// Delete user (optional, if needed for admin actions)
-export const deleteUserById = async (id: number): Promise<number> => {
-  return db<User>('users').where({ id }).delete()
+export const updateUserProfile = async (
+  userId: number,
+  updates: Partial<User>
+) => {
+  await db('users')
+    .where({ id: userId })
+    .update({
+      ...updates,
+      updated_at: new Date(),
+    })
+
+  return db('users').where({ id: userId }).first()
+}
+
+export const logoutService = async (
+  token: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const deleted = await redisClient.del(token)
+
+    if (deleted === 1) {
+      return { success: true, message: 'Logged out successfully' }
+    } else {
+      return { success: false, message: 'Token not found or already expired' }
+    }
+  } catch (error) {
+    console.error('Logout Service Error:', error)
+    return { success: false, message: 'Internal server error' }
+  }
 }

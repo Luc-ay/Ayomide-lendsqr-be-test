@@ -2,12 +2,11 @@ import express from 'express'
 import {
   getUsers,
   userLogin,
-  // logout,
-  // deleteUser,
+  editUserProfile,
+  logout,
   registerUser,
-  getUsersbyID,
+  getUserbyID,
 } from '../controller/userController'
-import { loginUser } from 'src/services/userService'
 import { authenticateToken } from 'src/middleware/authMiddleware'
 
 const router = express.Router()
@@ -15,6 +14,8 @@ const router = express.Router()
 router.post('/register', registerUser)
 router.post('/login', userLogin)
 router.get('/users', getUsers)
-router.get('/user/:id', authenticateToken, getUsersbyID)
+router.get('/user/:id', authenticateToken, getUserbyID)
+router.patch('/user/:id', authenticateToken, editUserProfile)
+router.post('/logout', authenticateToken, logout)
 
 export default router

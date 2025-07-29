@@ -1,6 +1,7 @@
 // src/controllers/user.controller.ts
 import { Request, Response } from 'express'
 import Jwt from 'jsonwebtoken'
+import redisClient from '../utils/redis'
 import {
   checkPhoneNumber,
   createUser,
@@ -8,11 +9,16 @@ import {
   findUserById,
   getAllUsers,
   loginUser,
+  logoutService,
+  updateUserProfile,
 } from '../services/userService'
 import { checkBlacklist } from 'src/utils/karmaLookup'
 import { User } from 'src/dtos/userDto'
-import { get } from 'http'
-import { createAccount, findAccount } from 'src/services/accountServices'
+import {
+  createAccount,
+  findAccount,
+  findAccountByUserId,
+} from 'src/services/accountServices'
 import { CreateAccountInput } from 'src/dtos/validationDto'
 
 const JWT_SECRET: any = process.env.JWT_SECRET
@@ -42,7 +48,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
     if (
       (blacklistCheck as any)?.['mock-response'] ||
-      blacklistCheck.blacklisted // if you're extracting this in your function
+      blacklistCheck.blacklisted
     ) {
       return res.status(403).json({
         message:
@@ -59,7 +65,7 @@ export const registerUser = async (req: Request, res: Response) => {
       first_name,
       last_name,
       email_verified: false,
-      verified: false,
+      verified: true,
       blacklisted: false,
     })
 
@@ -117,12 +123,17 @@ export const userLogin = async (req: Request, res: Response) => {
 
     const { password: _, ...safeUser } = user
 
-    // 🔐 Generate JWT Token
+    // Generate Token
     const token = Jwt.sign(
       { id: safeUser.id, email: safeUser.email },
       JWT_SECRET,
       { expiresIn: '7d' }
     )
+
+    // Store token in Redis with expiration
+    await redisClient.set(`token:${safeUser.id}`, token, {
+      EX: 60 * 60 * 24 * 7, // 7 days
+    })
 
     return res.status(200).json({
       message: 'Login successful',
@@ -134,28 +145,6 @@ export const userLogin = async (req: Request, res: Response) => {
   }
 }
 
-// export const logout = async (_req: Request, res: Response) => {
-//   try {
-//     const result = await logoutUser()
-//     return res.status(200).json(result)
-//   } catch (error) {
-//     return res.status(500).json({ message: 'Server error', error })
-//   }
-// }
-
-// export const deleteUser = async (req: Request, res: Response) => {
-//   const userId = Number(req.params.id)
-
-//   try {
-//     const deleted = await deleteAccount(userId)
-//     if (!deleted) return res.status(404).json({ message: 'User not found' })
-
-//     return res.status(200).json({ message: 'Account deleted successfully' })
-//   } catch (error) {
-//     return res.status(500).json({ message: 'Server error', error })
-//   }
-// }
-
 export const getUsers = async (req: Request, res: Response) => {
   const users = await getAllUsers()
 
@@ -165,7 +154,9 @@ export const getUsers = async (req: Request, res: Response) => {
 
   return res.status(200).json(users)
 }
-export const getUsersbyID = async (req: Request, res: Response) => {
+
+// Get user by ID
+export const getUserbyID = async (req: Request, res: Response) => {
   const userId = Number(req.params.id)
 
   const users = await findUserById(userId)
@@ -173,7 +164,7 @@ export const getUsersbyID = async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'No users found' })
   }
 
-  const userAccount = await findAccount('', userId)
+  const userAccount = await findAccountByUserId(userId)
   if (!userAccount) {
     return res.status(404).json({ message: 'Account not found' })
   }
@@ -182,4 +173,80 @@ export const getUsersbyID = async (req: Request, res: Response) => {
     user: users,
     account_number: userAccount.account_number,
   })
+}
+
+// Edit user profile
+export const editUserProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.id)
+
+    const {
+      username,
+      first_name,
+      last_name,
+      bvn,
+      dob,
+      profile_pic,
+      address,
+      apartment_type,
+      nearest_landmark,
+      city,
+      state,
+      lga,
+      gender,
+      marital_status,
+      occupation,
+      employment_status,
+    } = req.body
+
+    const updates = {
+      username,
+      first_name,
+      last_name,
+      bvn,
+      dob,
+      profile_pic,
+      address,
+      apartment_type,
+      nearest_landmark,
+      city,
+      state,
+      lga,
+      gender,
+      marital_status,
+      occupation,
+      employment_status,
+    }
+
+    const updatedUser = await updateUserProfile(userId, updates)
+
+    return res.status(200).json({
+      message: 'Profile updated successfully',
+      data: updatedUser,
+    })
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Failed to update profile',
+      error: error instanceof Error ? error.message : error,
+    })
+  }
+}
+
+// logout user
+export const logout = async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(400).json({ message: 'No token provided' })
+  }
+
+  const token = authHeader.split(' ')[1]
+  const result = await logoutService(token)
+
+  const status = result.success
+    ? 200
+    : result.message.includes('expired')
+    ? 400
+    : 500
+  return res.status(status).json({ message: result.message })
 }
