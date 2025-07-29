@@ -22,3 +22,10 @@ export interface TransactionContext {
   bankAccount?: string
   cycle?: string
 }
+
+export interface CreateAccountInput {
+  user_id: number
+  account_number: string
+  account_type?: string
+  balance?: number
+}

@@ -19,18 +19,27 @@ import {
   findAccount,
   findAccountByUserId,
 } from 'src/services/accountServices'
-import { CreateAccountInput } from 'src/dtos/validationDto'
+import { CreateAccountInput } from 'src/dtos/transactionDto'
+import {
+  editUserProfileSchema,
+  loginSchema,
+  registerUserSchema,
+} from 'src/dtos/validationDto'
 
 export const JWT_SECRET: any = process.env.JWT_SECRET
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
-    const { first_name, last_name, email, phone_number, password }: User =
-      req.body
+    const { error, value } = registerUserSchema.validate(req.body, {
+      abortEarly: false,
+    })
 
-    if (!first_name || !last_name || !email || !phone_number || !password) {
-      return res.status(400).json({ message: 'All fields are required' })
+    if (error) {
+      const errors = error.details.map((detail) => detail.message)
+      return res.status(400).json({ message: 'Validation error', errors })
     }
+
+    const { first_name, last_name, email, phone_number, password } = value
 
     const existingUser = await findUserByEmail(email.toLowerCase())
     if (existingUser) {
@@ -41,11 +50,10 @@ export const registerUser = async (req: Request, res: Response) => {
     if (phoneNumberExist) {
       return res
         .status(409)
-        .json({ message: 'phone number is already registered' })
+        .json({ message: 'Phone number is already registered' })
     }
 
     const blacklistCheck = await checkBlacklist(phone_number)
-
     if (
       (blacklistCheck as any)?.['mock-response'] ||
       blacklistCheck.blacklisted
@@ -69,7 +77,6 @@ export const registerUser = async (req: Request, res: Response) => {
       blacklisted: false,
     })
 
-    // Generate a unique 10-digit account number starting with '021'
     let accountNumber = ''
     let isUnique = false
 
@@ -81,7 +88,6 @@ export const registerUser = async (req: Request, res: Response) => {
       if (!existing) isUnique = true
     }
 
-    // Create the account
     const newAccount: CreateAccountInput = {
       user_id: Number(newUser.id),
       account_number: accountNumber,
@@ -89,7 +95,7 @@ export const registerUser = async (req: Request, res: Response) => {
       balance: 0,
     }
 
-    const createdAccount = await createAccount(newAccount)
+    await createAccount(newAccount)
 
     const { password: _, ...safeUser } = newUser
     return res.status(201).json({
@@ -105,34 +111,35 @@ export const registerUser = async (req: Request, res: Response) => {
 
 export const userLogin = async (req: Request, res: Response) => {
   try {
-    const { email, password }: User = req.body
-
-    if (!email || !password) {
-      return res.status(422).json({ message: 'All fields are required' })
+    const { error, value } = loginSchema.validate(req.body, {
+      abortEarly: false,
+    })
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: error.details.map((detail) => detail.message),
+      })
     }
 
-    const userExist = await findUserByEmail(email)
-    if (!userExist) {
-      return res.status(422).json({ message: 'User not found' })
-    }
+    const { email, password } = value
 
+    // Authenticate
     const user = await loginUser(email.toLowerCase(), password)
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' })
+      return res.status(401).json({ message: 'Invalid email or password' })
     }
 
+    // Destructure and remove password
     const { password: _, ...safeUser } = user
 
-    // generates a JWT token
     const token = Jwt.sign(
       { id: safeUser.id, email: safeUser.email },
       JWT_SECRET,
       { expiresIn: '7d' }
     )
 
-    // Store token in Redis
     await redisClient.set(`token:${safeUser.id}`, token, {
-      EX: 60 * 60 * 24 * 2, // 2 days
+      EX: 60 * 60 * 24 * 2,
     })
 
     return res.status(200).json({
@@ -180,45 +187,18 @@ export const editUserProfile = async (req: Request, res: Response) => {
   try {
     const userId = Number(req.params.id)
 
-    const {
-      username,
-      first_name,
-      last_name,
-      bvn,
-      dob,
-      profile_pic,
-      address,
-      apartment_type,
-      nearest_landmark,
-      city,
-      state,
-      lga,
-      gender,
-      marital_status,
-      occupation,
-      employment_status,
-    } = req.body
+    const { error, value } = editUserProfileSchema.validate(req.body, {
+      abortEarly: false,
+    })
 
-    const updates = {
-      username,
-      first_name,
-      last_name,
-      bvn,
-      dob,
-      profile_pic,
-      address,
-      apartment_type,
-      nearest_landmark,
-      city,
-      state,
-      lga,
-      gender,
-      marital_status,
-      occupation,
-      employment_status,
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: error.details.map((detail) => detail.message),
+      })
     }
 
-    const updatedUser = await updateUserProfile(userId, updates)
+    const updatedUser = await updateUserProfile(userId, value)
 
     return res.status(200).json({
       message: 'Profile updated successfully',
