@@ -12,9 +12,11 @@ export interface TransferFundsDTO {
 }
 
 export interface WithdrawFundsDTO {
-  account_number: string
+  account_number: number
   amount: number
-  bank_account: string
+  bank_name: string
+  userId: number
+  transaction_pin: string
 }
 
 export interface TransactionContext {

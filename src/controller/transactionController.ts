@@ -1,12 +1,17 @@
 import { Request, Response } from 'express'
 import { stat } from 'fs'
-import { fundWalletSchema, transferFundsSchema } from 'src/dtos/validationDto'
+import {
+  fundWalletSchema,
+  transferFundsSchema,
+  withdrawFundsSchema,
+} from 'src/dtos/validationDto'
 import { findAccount, findAccountByUserId } from 'src/services/accountServices'
 import {
   allTransactions,
   fundWallet,
   transactionById,
   transferFunds,
+  withdrawFunds,
 } from 'src/services/transactionService'
 
 // Fund a user wallet
@@ -83,7 +88,40 @@ export const transferFund = async (req: Request, res: Response) => {
   }
 }
 
-export const withdrawFunds = async (req: Request, res: Response) => {}
+export const withdrawFundsController = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.user?.id)
+
+    const { error, value } = withdrawFundsSchema.validate(req.body)
+    if (error) {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: error.details.map((e) => e.message),
+      })
+    }
+
+    const { account_number, amount, bank_name, transaction_pin } = value
+
+    const result = await withdrawFunds({
+      userId,
+      account_number,
+      amount,
+      bank_name,
+      transaction_pin,
+    })
+
+    return res.status(200).json({
+      message: 'Withdrawal successful',
+      data: result,
+    })
+  } catch (err: any) {
+    console.error('[WithdrawFundsController Error]', err.message)
+    return res.status(500).json({
+      message: 'Withdrawal failed',
+      error: err.message,
+    })
+  }
+}
 
 export const getAccountDetails = async (req: Request, res: Response) => {
   try {

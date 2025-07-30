@@ -69,7 +69,8 @@ export const transferFundsSchema = Joi.object({
 export const withdrawFundsSchema = Joi.object({
   account_number: Joi.string().required(),
   amount: Joi.number().positive().required(),
-  bank_account: Joi.string().required(),
+  bank_name: Joi.string().required(),
+  transaction_pin: Joi.string().length(4).required(),
 })
 
 export const createAccountPinSchema = Joi.object({

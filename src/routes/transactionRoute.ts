@@ -4,7 +4,7 @@ import {
   getAllTransactions,
   fundAccount,
   transferFund,
-  withdrawFunds,
+  withdrawFundsController,
   getAccountDetails,
 } from '../controller/transactionController'
 import { authenticateToken } from '../middleware/authMiddleware'
@@ -15,7 +15,7 @@ router.post('/transfer', authenticateToken, transferFund)
 
 router.post('/fund', authenticateToken, fundAccount)
 
-router.post('/withdraw', authenticateToken, withdrawFunds)
+router.post('/withdraw', authenticateToken, withdrawFundsController)
 
 router.get('/account', getAccountDetails)
 

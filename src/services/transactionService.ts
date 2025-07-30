@@ -159,36 +159,70 @@ export const transferFunds = async ({
 // Withdraw funds to bank
 export const withdrawFunds = async ({
   account_number,
+  userId,
   amount,
-  bank_account,
+  transaction_pin,
+  bank_name,
 }: WithdrawFundsDTO) => {
   const trx = await db.transaction()
 
   try {
-    const [account] = await trx('accounts').where({ account_number }).first()
-
+    const account = await trx('accounts').where({ id: userId }).first()
     if (!account) throw new Error('Account not found')
 
-    if (parseFloat(account.balance) < amount)
-      throw new Error('Insufficient balance')
+    const recipientAccount = await trx('accounts')
+      .where({ account_number })
+      .first()
 
+    const isInternalTransfer = !!recipientAccount
+
+    const transactionDescription = isInternalTransfer
+      ? `Transfer to ${account_number}`
+      : `Withdrawal to external account ${bank_name}`
+
+    const isValidPin = await confirmAccountPin(userId, transaction_pin)
+    if (!isValidPin) throw new Error('Invalid transaction pin')
+
+    if (parseFloat(account.balance) < amount) {
+      throw new Error('Insufficient balance')
+    }
+
+    // Deduct from sender
     await trx('accounts').where({ id: account.id }).decrement('balance', amount)
 
-    await trx('transactions').insert({
-      id: uuidv4(),
-      account_id: account.id,
-      type: 'debit',
-      amount,
-      status: 'success',
-      description: `Withdrawal to bank account ${bank_account}`,
-      created_at: new Date(),
-      updated_at: new Date(),
-    })
+    // Credit recipient if internal
+    if (isInternalTransfer) {
+      await trx('accounts')
+        .where({ id: recipientAccount.id })
+        .increment('balance', amount)
+    }
+
+    const [transaction] = await trx('transactions')
+      .insert({
+        sender_account_id: account.id,
+        receiver_account_id: isInternalTransfer ? recipientAccount?.id : null,
+        amount,
+        type: 'debit',
+        category: 'withdrawal',
+        reference: uuidv4(),
+        status: 'success',
+        channel: 'wallet',
+        description: transactionDescription,
+      })
+      .returning('*')
 
     await trx.commit()
-    return account
+
+    return {
+      success: true,
+      reference: transaction.reference,
+      amount,
+      recipient_account: account_number,
+      timestamp: new Date(),
+    }
   } catch (err) {
     await trx.rollback()
+    console.error('Withdrawal failed:', err)
     throw err
   }
 }
