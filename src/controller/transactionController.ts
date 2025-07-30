@@ -166,3 +166,12 @@ export const getTransactionById = async (req: Request, res: Response) => {
     })
   }
 }
+
+// Get transactions by category
+export const getTransactionByCategory = async (
+  req: Request,
+  res: Response
+) => {}
+
+// Get transactions by type (debit/credit)
+export const getTransactionByType = async (req: Request, res: Response) => {}
