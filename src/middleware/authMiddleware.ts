@@ -4,6 +4,16 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string
+      }
+    }
+  }
+}
+
 export const authenticateToken = async (
   req: Request,
   res: Response,
@@ -24,7 +34,7 @@ export const authenticateToken = async (
       return res.status(401).json({ message: 'Token expired or invalidated' })
     }
 
-    ;(req as any).user = decoded
+    req.user = decoded.id && { id: decoded.id }
     next()
   } catch (err) {
     return res.status(403).json({ message: 'Invalid token' })

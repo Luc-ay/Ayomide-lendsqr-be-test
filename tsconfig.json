@@ -7,7 +7,6 @@
     "outDir": "./dist",
     "skipLibCheck": true,
     "rootDir": ".",
-    "typeRoots": ["types", "node_modules/@types"],
     "baseUrl": ".",
     "moduleResolution": "node",
     "resolveJsonModule": true

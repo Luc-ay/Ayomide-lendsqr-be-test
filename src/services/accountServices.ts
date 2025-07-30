@@ -17,12 +17,15 @@ export const createAccount = async (input: CreateAccountInput) => {
     throw new Error('Could not create account')
   }
 }
-export const findAccount = async (
-  account_number: string
-): Promise<CreateAccountInput | undefined> => {
-  const query = db<CreateAccountInput>('accounts')
-
-  return db<CreateAccountInput>('accounts').where({ account_number }).first()
+export const findAccount = async (account_number: string): Promise<any> => {
+  return db('accounts')
+    .join('users', 'accounts.user_id', 'users.id')
+    .where('accounts.account_number', account_number)
+    .select(
+      'accounts.*',
+      db.raw("CONCAT(users.first_name, ' ', users.last_name) as name")
+    )
+    .first()
 }
 
 export const findAccountByUserId = async (

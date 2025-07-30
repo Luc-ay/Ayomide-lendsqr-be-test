@@ -8,7 +8,7 @@ import {
 } from '../dtos/transactionDto'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'process'
-import { confirmAccountPin } from './accountServices'
+import { confirmAccountPin, findAccount } from './accountServices'
 
 // Fund a user wallet
 export const fundWallet = async ({
@@ -19,23 +19,30 @@ export const fundWallet = async ({
   const trx = await db.transaction()
 
   try {
-    await trx('accounts').where({ account_number }).increment('balance', amount)
-
     const [account] = await trx('accounts').where({ account_number })
     if (!account) throw new Error('Account not found')
+
+    const [user] = await trx('users')
+      .where({ id: account.user_id })
+      .select('first_name', 'last_name')
+    if (!user) throw new Error('User not found')
+
+    const account_name = `${user.first_name} ${user.last_name}`
 
     const reference = uuidv4()
     const description = `Wallet funded via ${source}`
 
     const [transactionId] = await trx('transactions').insert({
       reference,
-      sender_account_id: account.id,
-      type: 'funding',
+      receiver_account_id: account.id,
+      type: 'credit',
       amount,
+      category: 'funding',
       status: 'success',
       description,
       channel: source,
     })
+    await trx('accounts').where({ id: account.id }).increment('balance', amount)
 
     const [transaction] = await trx('transactions').where({ id: transactionId })
 
@@ -44,7 +51,9 @@ export const fundWallet = async ({
     return {
       amount,
       account_number,
-      balance: account.balance,
+      account_name,
+      category: transaction.category,
+      type: transaction.type,
       description,
       reference,
       date: transaction.created_at,
@@ -74,6 +83,8 @@ export const transferFunds = async ({
       .where({ account_number: recipient_account })
       .first()
 
+    if (!recipient) throw new Error('Recipient account not found')
+
     if (recipient.account_number == sender.account_number)
       throw new Error('Cannot transfer to the same account')
 
@@ -81,6 +92,13 @@ export const transferFunds = async ({
 
     const isValidPin = await confirmAccountPin(sender.user_id, transaction_pin)
     if (!isValidPin) throw new Error('Invalid transaction pin')
+
+    const [user] = await trx('users')
+      .where({ id: recipient.user_id })
+      .select('first_name', 'last_name')
+    if (!user) throw new Error('User not found')
+
+    const account_name = `${user.first_name} ${user.last_name}`
 
     if (parseFloat(sender.balance) < amount)
       throw new Error('Insufficient balance')
@@ -128,7 +146,7 @@ export const transferFunds = async ({
       recipient: {
         account_number: recipient.account_number,
         amount_received: amount,
-        recipient_name: `${recipient.first_name} ${recipient.last_name}`,
+        recipient_name: account_name,
       },
     }
   } catch (err) {
@@ -173,3 +191,7 @@ export const withdrawFunds = async ({
     throw err
   }
 }
+
+export const getTransactionById = async (id: string) => {}
+
+export const getAllTransactions = async (context: TransactionContext) => {}
