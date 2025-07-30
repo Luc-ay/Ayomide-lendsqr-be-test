@@ -2,7 +2,12 @@ import { Request, Response } from 'express'
 import { stat } from 'fs'
 import { fundWalletSchema, transferFundsSchema } from 'src/dtos/validationDto'
 import { findAccount, findAccountByUserId } from 'src/services/accountServices'
-import { fundWallet, transferFunds } from 'src/services/transactionService'
+import {
+  allTransactions,
+  fundWallet,
+  transactionById,
+  transferFunds,
+} from 'src/services/transactionService'
 
 // Fund a user wallet
 export const fundAccount = async (req: Request, res: Response) => {
@@ -108,12 +113,56 @@ export const getAccountDetails = async (req: Request, res: Response) => {
 export const getAllTransactions = async (req: Request, res: Response) => {
   try {
     const userId = Number(req.user?.id)
+
+    const account = await findAccountByUserId(userId)
+    if (!account) {
+      return res.status(404).json({ message: 'Account not found' })
+    }
+
+    const transactions = await allTransactions(userId)
+
+    return res
+      .status(200)
+      .json({ transactions, transaction: transactions.length })
   } catch (error: any) {
-    console.error('[Transfer Error]', error.message)
+    console.error('[Get Transactions Error]', error.message)
     return res
       .status(500)
       .json({ message: 'Internal server error', error: error.message })
   }
 }
+export const getTransactionById = async (req: Request, res: Response) => {
+  try {
+    const transactionId = Number(req.params.id)
+    const userId = Number(req.user?.id)
 
-export const getTransactionById = async (req: Request, res: Response) => {}
+    if (!transactionId || isNaN(transactionId)) {
+      return res
+        .status(400)
+        .json({ message: 'Valid transaction ID is required' })
+    }
+
+    if (!userId || isNaN(userId)) {
+      return res.status(401).json({ message: 'Authentication required' })
+    }
+
+    const account = await findAccountByUserId(userId)
+    if (!account) {
+      return res.status(404).json({ message: 'Account not found' })
+    }
+
+    const transaction = await transactionById(transactionId, account.id)
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found' })
+    }
+
+    return res.status(200).json(transaction)
+  } catch (error: any) {
+    console.error('[Get Transaction Error]', error.message)
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    })
+  }
+}

@@ -113,8 +113,8 @@ export const transferFunds = async ({
 
     await trx('transactions').insert([
       {
-        sender_account_id: sender.id,
         receiver_account_id: recipient.id,
+        sender_account_id: sender.id,
         amount,
         type: 'debit',
         category: 'transfer',
@@ -192,6 +192,32 @@ export const withdrawFunds = async ({
   }
 }
 
-export const getTransactionById = async (id: string) => {}
+export const transactionById = async (
+  transactionId: number,
+  accountId: number
+) => {
+  return await db('transactions')
+    .where({ id: transactionId })
+    .andWhere(function () {
+      // Only return the transaction if the account is either sender (for debits) OR receiver (for credits)
+      this.where(function () {
+        this.where('type', 'debit').andWhere('sender_account_id', accountId)
+      }).orWhere(function () {
+        this.where('type', 'credit').andWhere('receiver_account_id', accountId)
+      })
+    })
+    .first()
+}
 
-export const getAllTransactions = async (context: TransactionContext) => {}
+export const allTransactions = async (accountId: number) => {
+  const transactions = await db('transactions')
+    .where(function () {
+      this.where('sender_account_id', accountId).andWhere('type', 'debit')
+    })
+    .orWhere(function () {
+      this.where('receiver_account_id', accountId).andWhere('type', 'credit')
+    })
+    .orderBy('created_at', 'desc')
+
+  return transactions
+}

@@ -19,7 +19,7 @@ router.post('/withdraw', authenticateToken, withdrawFunds)
 
 router.get('/account', getAccountDetails)
 
-router.get('/transaction/:id', authenticateToken, getTransactionById)
+router.get('/:id', authenticateToken, getTransactionById)
 
 router.get('/', authenticateToken, getAllTransactions)
 
