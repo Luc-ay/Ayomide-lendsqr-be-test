@@ -9,6 +9,7 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'process'
 import { confirmAccountPin, findAccount } from './accountServices'
+import { get } from 'http'
 
 // Fund a user wallet
 export const fundWallet = async ({
@@ -196,17 +197,40 @@ export const transactionById = async (
   transactionId: number,
   accountId: number
 ) => {
-  return await db('transactions')
-    .where({ id: transactionId })
-    .andWhere(function () {
-      // Only return the transaction if the account is either sender (for debits) OR receiver (for credits)
-      this.where(function () {
-        this.where('type', 'debit').andWhere('sender_account_id', accountId)
-      }).orWhere(function () {
-        this.where('type', 'credit').andWhere('receiver_account_id', accountId)
+  const trx = await db.transaction()
+  try {
+    const transaction = await db('transactions')
+      .where({ id: transactionId })
+      .andWhere(function () {
+        // Only return the transaction if the account is either sender (for debits) OR receiver (for credits)
+        this.where(function () {
+          this.where('type', 'debit').andWhere('sender_account_id', accountId)
+        }).orWhere(function () {
+          this.where('type', 'credit').andWhere(
+            'receiver_account_id',
+            accountId
+          )
+        })
       })
-    })
-    .first()
+      .first()
+
+    const recipient = await trx('accounts')
+      .where({ user_id: transaction.receiver_account_id })
+      .first()
+    console.log(recipient.id)
+    const [user] = await trx('users')
+      .where({ id: recipient.user_id })
+      .select('first_name', 'last_name')
+    if (!user) throw new Error('User not found')
+
+    const account_name = `${user.first_name} ${user.last_name}`
+
+    return { Transaction: transaction, account_name }
+  } catch (error: any) {
+    console.error('[Transaction By ID Error]', error.message)
+    await trx.rollback()
+    throw new Error('Transaction not found')
+  }
 }
 
 export const allTransactions = async (accountId: number) => {
