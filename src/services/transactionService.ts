@@ -74,13 +74,12 @@ export const transferFunds = async ({
       .where({ account_number: recipient_account })
       .first()
 
+    if (recipient.account_number == sender.account_number)
+      throw new Error('Cannot transfer to the same account')
+
     if (!sender || !recipient) throw new Error('Invalid account details')
 
-    if (!sender.transaction_pin)
-      throw new Error('Transaction pin not set for this account')
-
     const isValidPin = await confirmAccountPin(sender.user_id, transaction_pin)
-
     if (!isValidPin) throw new Error('Invalid transaction pin')
 
     if (parseFloat(sender.balance) < amount)
@@ -92,29 +91,30 @@ export const transferFunds = async ({
       .increment('balance', amount)
 
     const now = new Date()
-    const reference = uuidv4()
+    const groupRef = uuidv4()
 
-    // Log transactions
     await trx('transactions').insert([
       {
-        reference,
-        account_id: sender.id,
-        type: 'debit',
+        sender_account_id: sender.id,
+        receiver_account_id: recipient.id,
         amount,
-        status: 'success',
+        type: 'debit',
+        category: 'transfer',
         description: `Transfer to ${recipient.account_number}`,
-        created_at: now,
-        updated_at: now,
+        reference: uuidv4(),
+        group_reference: groupRef,
+        status: 'success',
       },
       {
-        reference,
-        account_id: recipient.id,
-        type: 'credit',
+        sender_account_id: sender.id,
+        receiver_account_id: recipient.id,
         amount,
-        status: 'success',
+        type: 'credit',
+        category: 'transfer',
         description: `Received from ${sender.account_number}`,
-        created_at: now,
-        updated_at: now,
+        reference: uuidv4(),
+        group_reference: groupRef,
+        status: 'success',
       },
     ])
 
@@ -122,12 +122,13 @@ export const transferFunds = async ({
 
     return {
       message: 'Transfer successful',
-      reference,
+      groupRef,
       transaction_time: now,
+      reference: sender.reference,
       recipient: {
         account_number: recipient.account_number,
         amount_received: amount,
-        recipient_name: recipient.first_name + ' ' + recipient.last_name,
+        recipient_name: `${recipient.first_name} ${recipient.last_name}`,
       },
     }
   } catch (err) {

@@ -35,6 +35,8 @@ export const createAccountPin = async (userId: number, pin: string) => {
   const account = await db('accounts').where({ user_id: userId }).first()
   if (!account) throw new Error('Account not found')
 
+  if (account.account_pin) throw new Error('PIN already exists')
+
   const hashedPin = await bcrypt.hash(pin, 10)
 
   await db('accounts').where({ user_id: userId }).update({

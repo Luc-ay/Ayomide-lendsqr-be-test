@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import { stat } from 'fs'
 import { fundWalletSchema, transferFundsSchema } from 'src/dtos/validationDto'
 import { findAccountByUserId } from 'src/services/accountServices'
-import { fundWallet } from 'src/services/transactionService'
+import { fundWallet, transferFunds } from 'src/services/transactionService'
 
 // Fund a user wallet
 export const fundAccount = async (req: Request, res: Response) => {
@@ -38,24 +38,41 @@ export const fundAccount = async (req: Request, res: Response) => {
 }
 
 // Transfer funds between wallets
-export const transferFunds = async (req: Request, res: Response) => {
+export const transferFund = async (req: Request, res: Response) => {
   try {
-    const userId = Number(req.params.id)
-    const senderAccount = await findAccountByUserId(userId)
-    if (!senderAccount) {
-      return res.status(404).json({ message: 'Sender account not found' })
-    }
-    const { error, value } = transferFundsSchema.validate(req.body)
-    if (error) {
-      const errors = error.details.map((detail) => detail.message)
-      return res.status(400).json({ message: 'Validation error', errors })
+    const userId = Number(req.user?.id)
+
+    const account = await findAccountByUserId(userId)
+    if (!account) {
+      return res.status(404).json({ message: 'Account not found' })
     }
 
-    const { recipient_account, amount } = value
-    const sender_account = senderAccount.account_number
+    const { recipient_account, amount, transaction_pin } = req.body
+
+    const sender_account = account.account_number
+
+    const transfer = await transferFunds({
+      recipient_account,
+      amount,
+      transaction_pin,
+      sender_account,
+    })
+    if (!transfer) {
+      return res.status(404).json({ message: 'Transfer failed' })
+    }
+    return res.status(200).json({
+      message: 'Transfer successful',
+      amount: `#${amount}`,
+      recipient_account: transfer.recipient.account_number,
+      name: transfer.recipient.recipient_name,
+      reference: transfer.reference,
+      transaction_time: transfer.transaction_time,
+    })
   } catch (error: any) {
     console.error('[Transfer Error]', error.message)
-    return res.status(500).json({ message: 'Internal server error' })
+    return res
+      .status(500)
+      .json({ message: 'Internal server error', error: error.message })
   }
 }
 

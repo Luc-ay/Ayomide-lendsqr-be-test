@@ -3,7 +3,7 @@ import {
   getTransactionById,
   getAllTransactions,
   fundAccount,
-  transferFunds,
+  transferFund,
   withdrawFunds,
   getAccountDetails,
 } from '../controller/transactionController'
@@ -11,7 +11,7 @@ import { authenticateToken } from '../middleware/authMiddleware'
 
 const router = express.Router()
 
-router.post('/transfer', authenticateToken, transferFunds)
+router.post('/transfer', authenticateToken, transferFund)
 
 router.post('/fund', authenticateToken, fundAccount)
 
