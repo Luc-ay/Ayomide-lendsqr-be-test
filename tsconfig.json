@@ -5,7 +5,7 @@
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "baseUrl": "./src",
     "paths": {
       "src/*": ["./src/*"]
@@ -16,7 +16,7 @@
     "typeRoots": ["./node_modules/@types"],
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "knexfile.ts"],
+  "include": ["src/**/*.ts", "src/knexfile.ts"],
   "exclude": ["node_modules", "**/*.test.ts"],
   "ts-node": {
     "require": ["dotenv/config"]
