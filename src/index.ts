@@ -1,6 +1,5 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import limiter from './dtos/ratelimit'
 import userRoutes from './routes/userRoute'
 import transactionRoutes from './routes/transactionRoute'
 import { errorHandler } from './middleware/errorHandler'
@@ -12,8 +11,6 @@ const app = express()
 
 // Middleware
 app.use(express.json())
-app.use(limiter)
-app.set('trust proxy', true)
 
 // Routes
 app.use('/', userRoutes)
