@@ -21,7 +21,9 @@ export async function up(knex: Knex): Promise<void> {
       .inTable('accounts')
       .onDelete('SET NULL')
 
-    table.enu('type', ['funding', 'transfer', 'withdrawal']).notNullable()
+    table.enu('type', ['credit', 'debit']).notNullable()
+    table.enu('category', ['funding', 'transfer', 'withdrawal']).notNullable()
+    table.string('group_reference').nullable()
     table.decimal('amount', 14, 2).notNullable()
     table.enu('status', ['pending', 'success', 'failed']).defaultTo('success')
     table.string('description').nullable()

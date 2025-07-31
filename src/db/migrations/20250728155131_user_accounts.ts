@@ -13,6 +13,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('account_number', 20).unique().notNullable()
     table.string('account_type').defaultTo('wallet')
     table.decimal('balance', 14, 2).defaultTo(0.0)
+    table.string('account_pin').nullable()
     table.string('status').defaultTo('active') // active, suspended, closed
     table.timestamps(true, true)
   })
