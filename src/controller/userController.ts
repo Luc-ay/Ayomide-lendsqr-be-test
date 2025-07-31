@@ -12,21 +12,21 @@ import {
   logoutService,
   updateUserProfile,
 } from '../services/userService'
-import { checkBlacklist } from 'src/utils/karmaLookup'
-import { User } from 'src/dtos/userDto'
+import { checkBlacklist } from '../utils/karmaLookup'
+import { User } from '../dtos/userDto'
 import {
   createAccount,
   createAccountPin,
   findAccount,
   findAccountByUserId,
-} from 'src/services/accountServices'
-import { CreateAccountInput } from 'src/dtos/transactionDto'
+} from '../services/accountServices'
+import { CreateAccountInput } from '../dtos/transactionDto'
 import {
   createAccountPinSchema,
   editUserProfileSchema,
   loginSchema,
   registerUserSchema,
-} from 'src/dtos/validationDto'
+} from '../dtos/validationDto'
 
 export const JWT_SECRET: any = process.env.JWT_SECRET
 

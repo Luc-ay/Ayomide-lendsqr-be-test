@@ -2,8 +2,8 @@ import db from '../config/db'
 import Jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { User } from '../dtos/userDto'
-import redisClient from 'src/utils/redis'
-import { JWT_SECRET } from 'src/controller/userController'
+import redisClient from '../utils/redis'
+import { JWT_SECRET } from '../controller/userController'
 
 // Create a new user (with hashed password)
 export const createUser = async (

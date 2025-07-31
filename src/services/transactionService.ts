@@ -1,4 +1,3 @@
-import { channel } from 'diagnostics_channel'
 import db from '../config/db'
 import {
   FundWalletDTO,
@@ -8,7 +7,6 @@ import {
 } from '../dtos/transactionDto'
 import { v4 as uuidv4 } from 'uuid'
 import { confirmAccountPin, findAccount } from './accountServices'
-import { get } from 'http'
 
 // Fund a user wallet
 export const fundWallet = async ({

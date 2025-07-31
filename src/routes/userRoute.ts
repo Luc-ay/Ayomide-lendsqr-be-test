@@ -8,7 +8,7 @@ import {
   createaccountPin,
   getUserbyID,
 } from '../controller/userController'
-import { authenticateToken } from 'src/middleware/authMiddleware'
+import { authenticateToken } from '../middleware/authMiddleware'
 
 const router = express.Router()
 

@@ -4,15 +4,15 @@ import {
   fundWalletSchema,
   transferFundsSchema,
   withdrawFundsSchema,
-} from 'src/dtos/validationDto'
-import { findAccount, findAccountByUserId } from 'src/services/accountServices'
+} from '../dtos/validationDto'
+import { findAccount, findAccountByUserId } from '../services/accountServices'
 import {
   allTransactions,
   fundWallet,
   transactionById,
   transferFunds,
   withdrawFunds,
-} from 'src/services/transactionService'
+} from '../services/transactionService'
 
 // Fund a user wallet
 export const fundAccount = async (req: Request, res: Response) => {
@@ -22,7 +22,7 @@ export const fundAccount = async (req: Request, res: Response) => {
     })
 
     if (error) {
-      const errors = error.details.map((detail) => detail.message)
+      const errors = error.details.map((detail: any) => detail.message)
       return res.status(400).json({ message: 'Validation error', errors })
     }
 
@@ -58,7 +58,7 @@ export const transferFund = async (req: Request, res: Response) => {
     })
 
     if (error) {
-      const errors = error.details.map((detail) => detail.message)
+      const errors = error.details.map((detail: any) => detail.message)
       return res.status(400).json({ message: 'Validation error', errors })
     }
 
@@ -96,7 +96,7 @@ export const withdrawFundsController = async (req: Request, res: Response) => {
     if (error) {
       return res.status(400).json({
         message: 'Validation error',
-        errors: error.details.map((e) => e.message),
+        errors: error.details.map((e: any) => e.message),
       })
     }
 

@@ -1,6 +1,6 @@
-import db from 'src/config/db'
+import db from '../config/db'
 import bcrypt from 'bcryptjs'
-import { CreateAccountInput } from 'src/dtos/transactionDto'
+import { CreateAccountInput } from '../dtos/transactionDto'
 
 export const createAccount = async (input: CreateAccountInput) => {
   try {
