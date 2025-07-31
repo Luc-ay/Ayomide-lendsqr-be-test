@@ -189,7 +189,7 @@ export const getTransactionById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Account not found' })
     }
 
-    const transaction = await transactionById(transactionId, account.id)
+    const transaction = await transactionById(transactionId, Number(account.id))
 
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' })
