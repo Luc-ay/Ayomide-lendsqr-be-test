@@ -6,9 +6,9 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
-    "migrate": "knex --knexfile knexfile.ts migrate:latest",
-    "rollback": "knex --knexfile knexfile.ts migrate:rollback",
-    "seed": "knex --knexfile knexfile.ts seed:run"
+    "migrate": "knex --knexfile src/knexfile.ts migrate:latest",
+    "rollback": "knex --knexfile src/knexfile.ts migrate:rollback",
+    "seed": "knex --knexfile src/knexfile.ts seed:run"
   },
   "keywords": [],
   "author": "",
