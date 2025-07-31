@@ -13,6 +13,7 @@ const app = express()
 // Middleware
 app.use(express.json())
 app.use(limiter)
+app.set('trust proxy', true)
 
 // Routes
 app.use('/', userRoutes)
