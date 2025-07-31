@@ -40,7 +40,7 @@
     "@types/joi": "^17.2.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/knex": "^0.15.2",
-    "@types/node": "^24.1.0",
+    "@types/node": "^18.19.121",
     "@types/redis": "^4.0.10",
     "@types/uuid": "^10.0.0",
     "jest": "^30.0.5",
