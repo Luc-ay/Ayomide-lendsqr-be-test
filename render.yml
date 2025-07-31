@@ -1,6 +1,6 @@
 services:
   - type: web
     name: lendsqr-wallet-service
-    env: node
-    buildCommand: npm run build
+    env: node # Explicitly use Node.js
+    buildCommand: npm install && npm run build
     startCommand: npm run start
