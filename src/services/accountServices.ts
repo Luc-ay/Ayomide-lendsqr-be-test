@@ -28,10 +28,8 @@ export const findAccount = async (account_number: string): Promise<any> => {
     .first()
 }
 
-export const findAccountByUserId = async (
-  userId: number
-): Promise<CreateAccountInput | undefined> => {
-  return db<CreateAccountInput>('accounts').where({ user_id: userId }).first()
+export const findAccountByUserId = async (userId: number) => {
+  return db('accounts').where({ user_id: userId }).first()
 }
 
 export const createAccountPin = async (userId: number, pin: string) => {

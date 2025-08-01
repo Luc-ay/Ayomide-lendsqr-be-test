@@ -1,3 +1,5 @@
+import { User } from '../dtos/userDto'
+
 export interface FundWalletDTO {
   account_number: string
   amount: number

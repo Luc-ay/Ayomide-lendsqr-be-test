@@ -213,3 +213,6 @@ export const getTransactionByCategory = async (
 
 // Get transactions by type (debit/credit)
 export const getTransactionByType = async (req: Request, res: Response) => {}
+
+// Sort transactions by date
+export const sortTransactionByDate = async (req: Request, res: Response) => {}

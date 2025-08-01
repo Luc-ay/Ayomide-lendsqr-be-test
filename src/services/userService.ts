@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { User } from '../dtos/userDto'
 import redisClient from '../utils/redis'
 import { JWT_SECRET } from '../controller/userController'
+import { findAccountByUserId } from './accountServices'
 
 // Create a new user (with hashed password)
 export const createUser = async (
@@ -62,10 +63,29 @@ export const checkPhoneNumber = async (
 }
 
 // Find user by ID
-export const findUserById = async (id: number): Promise<User | undefined> => {
-  return db<User>('users').where({ id }).first()
-}
 
+export const findUserById = async (id: number): Promise<any> => {
+  const findUser = await db<User>('users').where({ id }).first()
+  if (!findUser) {
+    throw new Error('User not found')
+  }
+
+  const userAccount = await db('accounts')
+    .select('account_number', 'account_type', 'balance')
+    .where({ user_id: id })
+    .first()
+
+  if (!userAccount) {
+    throw new Error('User account not found')
+  }
+
+  return {
+    findUser,
+    account_number: userAccount.account_number,
+    account_type: userAccount.account_type,
+    balance: userAccount.balance,
+  }
+}
 export const updateUserProfile = async (
   userId: number,
   updates: Partial<User>

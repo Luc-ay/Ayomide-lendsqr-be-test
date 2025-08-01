@@ -154,16 +154,6 @@ export const userLogin = async (req: Request, res: Response) => {
   }
 }
 
-export const getUsers = async (req: Request, res: Response) => {
-  const users = await getAllUsers()
-
-  if (!users || users.length === 0) {
-    return res.status(404).json({ message: 'No users found' })
-  }
-
-  return res.status(200).json(users)
-}
-
 // Get user by ID
 export const getUserbyID = async (req: Request, res: Response) => {
   const userId = Number(req.params.id)
@@ -173,14 +163,8 @@ export const getUserbyID = async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'No users found' })
   }
 
-  const userAccount = await findAccountByUserId(userId)
-  if (!userAccount) {
-    return res.status(404).json({ message: 'Account not found' })
-  }
-
   return res.status(200).json({
     user: users,
-    account_number: userAccount.account_number,
   })
 }
 
