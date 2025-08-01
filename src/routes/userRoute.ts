@@ -1,6 +1,5 @@
 import express from 'express'
 import {
-  getUsers,
   userLogin,
   editUserProfile,
   logoutController,
@@ -14,7 +13,6 @@ const router = express.Router()
 
 router.post('/register', registerUser)
 router.post('/login', userLogin)
-router.get('/users', getUsers)
 router.get('/user/:id', authenticateToken, getUserbyID)
 router.post('/user/create-pin/:id', authenticateToken, createaccountPin)
 router.patch('/user/:id', authenticateToken, editUserProfile)
